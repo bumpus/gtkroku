@@ -20,6 +20,17 @@
 
 #include <glib/gi18n.h>
 
+/*network includes*/
+#include <sys/socket.h>
+#include <netdb.h>
+
+#define RESPONSE_BUFFER_LEN 8192
+char buffer[RESPONSE_BUFFER_LEN];
+unsigned int len = RESPONSE_BUFFER_LEN;
+
+char *resp;
+
+
 /*defines for the valid buttons on a roku remote*/
 #define REMOTE_Home "Home"
 #define REMOTE_Rev "Rev"
@@ -209,6 +220,78 @@ int
 http_post_command(gchar* command)
 {
 	printf("Sending %s", command);
+	int sock;
+	size_t ret;
+	unsigned int socklen;
+	struct sockaddr_in sockname;
+	struct sockaddr clientsock;
+	struct hostent *hostname;
+	fd_set fds;
+	struct timeval timeout;
+
+	hostname = gethostbyname(ROKU_ADDRESS);
+	if (hostname == NULL) {
+		printf("gethostbyname returns null for host %s", ROKU_ADDRESS);
+	}
+	hostname->h_addrtype = AF_INET;
+
+	if((sock = socket(PF_INET, SOCK_STREAM, 0)) == -1){
+		printf("err: socket() failed");
+		return -1;
+	}
+
+	memset((char*)&sockname, 0, sizeof(sockname));
+	sockname.sin_family=AF_INET;
+	sockname.sin_port=htons(ROKU_ADDRESS_PORT);
+	sockname.sin_addr.s_addr=*((unsigned long*)(hostname->h_addr_list[0]));
+
+	printf(">>>> %s %d >>>>\n",ROKU_ADDRESS,ROKU_ADDRESS_PORT);
+	printf("%s", command);
+	printf(">>>>>>>>>>>>>>>>>>>>\n");
+	ret=connect(sock, (struct sockaddr*) &sockname, sizeof(sockname));
+	ret=send(sock, command, strlen(command), 0);
+	if(ret != strlen(command)){
+		// We're just returning an error here to make a simple example.
+		// Your code will want a robust while loop around the send to account for partial sends
+		printf("err:sendto");
+		return -1;
+	}
+
+	// Your code will want a robust while loop around the recv to account for partial data returns
+	FD_ZERO(&fds);
+	FD_SET(sock, &fds);
+	timeout.tv_sec=10;
+	timeout.tv_usec=10;
+
+	if(select(sock+1, &fds, NULL, NULL, &timeout) < 0){
+		printf("err:select");
+		return -1;
+	}
+
+	if(FD_ISSET(sock, &fds)){
+		if((len = recv(sock, buffer, sizeof(buffer), 0)) == (size_t)-1){
+			printf("err: recvfrom");
+			return -1;
+		}
+		buffer[len]='\0';
+		close(sock);
+
+		if(strncmp(buffer+9, "200 OK", 6) != 0){
+			printf("err: http req parsing ");
+		}
+
+		printf("<<<<<<<<<<<<<<<<<<<<\n");
+		printf(buffer);
+		printf("<<<<<<<<<<<<<<<<<<<<\n");
+		resp = (char **)&buffer;
+		return 0;
+
+	}else{
+
+		printf("err: no http answer");
+		return -1;
+	}
+	
 }
 
 void
