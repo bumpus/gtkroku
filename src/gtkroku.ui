@@ -325,6 +325,7 @@
           <object class="GtkComboBox" id="combobox1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="model">liststore1</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -334,5 +335,16 @@
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkListStore" id="liststore1">
+    <columns>
+      <!-- column-name ip -->
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0" translatable="yes">192.168.0.16</col>
+      </row>
+    </data>
   </object>
 </interface>

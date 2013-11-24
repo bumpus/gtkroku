@@ -20,6 +20,27 @@
 
 #include <glib/gi18n.h>
 
+/*defines for the valid buttons on a roku remote*/
+#define REMOTE_Home "Home"
+#define REMOTE_Rev "Rev"
+#define REMOTE_Fwd "Fwd"
+#define REMOTE_Play "Play"
+#define REMOTE_Select "Select"
+#define REMOTE_Left "Left"
+#define REMOTE_Right "Right"
+#define REMOTE_Down "Down"
+#define REMOTE_Up "Up"
+#define REMOTE_Back "Back"
+#define REMOTE_InstantReplay "InstantReplay"
+#define REMOTE_Info "Info"
+
+/*for Development purposes, hardcode the address for my
+ * family room roku player. I'll implement the automatic detection
+ * and a drop down selector for if I find more than one later*/
+
+/*TODO: Find and replace all the ROKU_ADDRESS items once detection is implemented*/
+#define ROKU_ADDRESS "192.168.0.16"
+#define ROKU_ADDRESS_PORT 8060
 
 
 /* For testing propose use the local (not installed) ui file */
@@ -141,17 +162,72 @@ gtkroku_new (void)
 	                     NULL);
 }
 
+const gchar* get_button_type(GtkButton *button, gpointer user_data)
+{
+	const gchar* text = gtk_button_get_label (button);
+	if (g_str_equal (text, _("Back")))
+		return REMOTE_Back;
+
+	if (g_str_equal (text, _("Home")))
+		return REMOTE_Home;
+
+	if (g_str_equal (text, _(">>")))
+		return REMOTE_Fwd;
+
+	if (g_str_equal (text, ("<<")))
+		return REMOTE_Rev;
+
+	if (g_str_equal (text, _("||>")))
+		return REMOTE_Play;
+
+	if (g_str_equal (text, _("OK")))
+		return REMOTE_Select;
+
+	if (g_str_equal (text, _("Left")))
+		return REMOTE_Left;
+
+	if (g_str_equal (text, _("Right")))
+		return REMOTE_Right;
+
+	if (g_str_equal (text, _("Down")))
+		return REMOTE_Down;
+
+	if (g_str_equal (text, _("Up")))
+		return REMOTE_Up;
+
+	if (g_str_equal (text, _("IR")))
+		return REMOTE_InstantReplay;
+
+	if (g_str_equal (text, _("*")))
+		return REMOTE_Info;
+
+	/*All Else failing, return a null terminator*/
+	return '\0';
+}
+
+int
+http_post_command(gchar* command)
+{
+	printf("Sending %s", command);
+}
+
 void
 on_remote_button_press (GtkButton *button, gpointer user_data)
 {
-	printf("Button Pressed\n", user_data.);
+	const gchar* command = get_button_type(button, user_data);
+	char http_request[256] = "POST /keydown/";
+	strcat(http_request, command);
+	strcat(http_request, " HTTP/1.1\r\n\r\n");
+	http_post_command(http_request);
 }
-
 
 void
 on_remote_button_release (GtkButton *button, gpointer user_data)
 {
-	printf("Button Released\n");
+	const gchar* command = get_button_type(button, user_data);
+	char http_request[256] = "POST /keyup/";
+	strcat(http_request, command);
+	strcat(http_request, " HTTP/1.1\r\n\r\n");
+	http_post_command(http_request);
 }
-
 
